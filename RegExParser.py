@@ -37,7 +37,6 @@ def get_closing_paren(regex: str, paren_open_idx):
 
 
 def regex_to_nfa(regex: str):
-    print(regex)
     nfa = None
     idx_begin = 0
     while idx_begin < len(regex):

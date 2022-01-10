@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     grammerGrep = GrammarGrep()
     grammerGrep.load_code(code)
-    grammerGrep.match(regex)
+    print(grammerGrep.match_all(regex))
 
 
 
