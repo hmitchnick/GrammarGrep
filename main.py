@@ -3,9 +3,7 @@ from GrammarGrep import *
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
-    regex = '''if len(<?>) > <int>:
-                    <?+>
-                    return <int>'''
+    regex = 'if len(;id) > 0:'
 
     code = '''def f(z: set):
         x = []
@@ -20,8 +18,9 @@ if __name__ == '__main__':
 
     grammerGrep = GrammarGrep()
     grammerGrep.load_code(code)
-    res = grammerGrep.match(regex)
-    print(res)
+    grammerGrep.match(regex)
+
+
 
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
