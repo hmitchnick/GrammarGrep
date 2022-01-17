@@ -112,9 +112,10 @@ class GrammarAutomata:
         lineno_begin = 1
         col_offset_begin = 0
         while lineno_begin != -1:
+            print(lineno_begin, ", ", col_offset_begin)
             stack = [(self.nodes[0], lineno_begin, col_offset_begin)]
             while len(stack) > 0:
-                node, lineno, col_offset = stack[0]
+                node, lineno, col_offset = stack[-1]
                 stack.pop()
                 for node_dst, cond in node.edges:
                     satisfied, listends = cond.check(codelines, labels, lineno, col_offset)

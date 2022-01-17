@@ -3,7 +3,7 @@ from GrammarGrep import *
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
-    regex = 'if len(;id) > 0:'
+    regex = 'if len(;id) > 0:;|return ;num'
 
     code = '''def f(z: set):
         x = []
@@ -19,6 +19,7 @@ if __name__ == '__main__':
     grammerGrep = GrammarGrep()
     grammerGrep.load_code(code)
     print(grammerGrep.match_all(regex))
+    print("done!")
 
 
 
