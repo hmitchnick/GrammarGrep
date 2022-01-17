@@ -1,3 +1,12 @@
+def get_next_begin(codelines, lineno, col_offset):
+    if col_offset+1 < len(codelines[lineno-1]):
+        return lineno, col_offset + 1
+    elif lineno < len(codelines):
+        return lineno+1, 0
+    else:
+        return -1, -1
+
+
 class GrammarAutomata:
     class Node:
         def __init__(self):
@@ -15,7 +24,9 @@ class GrammarAutomata:
         # returns if satisfied and index after passing
         def check(self, codelines, labels: dict, lineno, col_offset):
             if self.type == "str":
-                return codelines[lineno].startswith(self.str, col_offset), [(lineno, col_offset + len(self.str))]
+                return codelines[lineno-1].startswith(self.str, col_offset), [(lineno, col_offset + len(self.str))]
+            elif self.type == "epsilon":
+                return True, [(lineno, col_offset)]
             else:
                 matchs = []
                 if (lineno, col_offset) in labels:
@@ -90,33 +101,35 @@ class GrammarAutomata:
     def add_edge(self, id_src, id_dst, cond):
         self.nodes[id_src].add_edge(self.nodes[id_dst], cond)
 
+    def print_nodes(self):
+        for node in self.nodes:
+            print("NODE", hex(id(node)), ":")
+            for edge in node.edges:
+                print("EDGE TO", hex(id(edge[0])), "WITH COND TYPE:", edge[1].type, "STR:", edge[1].str)
+
     def check_all(self, codelines, labels):
         matchs = []
-        stack = [(self.nodes[0], 0, 0)]
-        while len(stack) > 0:
-            node, lineno, col_offset = stack[0]
-            stack.pop()
-            for node_dst, cond in node.edges:
-                satisfied, listends = cond.check(codelines, labels, lineno, col_offset)
-                if satisfied:
-                    if node_dst == self.nodes[-1]:
-                        matchs += listends
-                    else:
-                        for ends in listends:
-                            stack.append((node_dst, ends[0], ends[1]))
+        lineno_begin = 1
+        col_offset_begin = 0
+        while lineno_begin != -1:
+            stack = [(self.nodes[0], lineno_begin, col_offset_begin)]
+            while len(stack) > 0:
+                node, lineno, col_offset = stack[0]
+                stack.pop()
+                for node_dst, cond in node.edges:
+                    satisfied, listends = cond.check(codelines, labels, lineno, col_offset)
+                    if satisfied:
+                        if node_dst == self.nodes[-1]:
+                            matchs += [((lineno_begin, col_offset_begin), listend) for listend in listends]
+                        else:
+                            for ends in listends:
+                                stack.append((node_dst, ends[0], ends[1]))
+            lineno_begin, col_offset_begin = get_next_begin(codelines, lineno_begin, col_offset_begin)
         return matchs
 
     def check_first(self, codelines, labels):
-        stack = [(self.nodes[0], 0, 0)]
-        while len(stack) > 0:
-            node, lineno, col_offset = stack[0]
-            stack.pop()
-            for node_dst, cond in node.edges:
-                satisfied, listends = cond.check(codelines, labels, lineno, col_offset)
-                if satisfied:
-                    if node_dst == self.nodes[-1]:
-                        return listends[0]
-                    else:
-                        for ends in listends:
-                            stack.append((node_dst, ends[0], ends[1]))
-        return None
+        res = self.check_all(codelines, labels)
+        if len(res) > 0:
+            return res[0]
+        else:
+            return None

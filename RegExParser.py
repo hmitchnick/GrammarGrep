@@ -42,7 +42,7 @@ def regex_to_nfa(regex: str):
     while idx_begin < len(regex):
         meta_idx = regex.find(";", idx_begin)
         if meta_idx == -1:
-            nfa_step = GrammarAutomata.create_automata_matching(regex)
+            nfa_step = GrammarAutomata.create_automata_matching(regex[idx_begin:])
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
             return nfa
 
@@ -76,23 +76,23 @@ def regex_to_nfa(regex: str):
             nfa = GrammarAutomata.create_automata_question(nfa)
             idx_begin = meta_idx + 2
         elif regex[meta_idx + 1:].startswith("id"):
-            nfa_step = GrammarAutomata.create_automata_meta("type_id")
+            nfa_step = GrammarAutomata.create_automata_meta("id_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
             idx_begin = meta_idx + 1 + 2
         elif regex[meta_idx + 1:].startswith("stmt"):
-            nfa_step = GrammarAutomata.create_automata_meta("type_stmt")
+            nfa_step = GrammarAutomata.create_automata_meta("stmt_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
             idx_begin = meta_idx + 1 + 4
         elif regex[meta_idx + 1:].startswith("expr"):
-            nfa_step = GrammarAutomata.create_automata_meta("type_expr")
+            nfa_step = GrammarAutomata.create_automata_meta("expr_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
             idx_begin = meta_idx + 1 + 4
         elif regex[meta_idx + 1:].startswith("str"):
-            nfa_step = GrammarAutomata.create_automata_meta("type_str")
+            nfa_step = GrammarAutomata.create_automata_meta("str_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
             idx_begin = meta_idx + 1 + 3
         elif regex[meta_idx + 1:].startswith("num"):
-            nfa_step = GrammarAutomata.create_automata_meta("type_num")
+            nfa_step = GrammarAutomata.create_automata_meta("num_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
             idx_begin = meta_idx + 1 + 3
         else:
