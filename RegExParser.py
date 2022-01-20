@@ -2,7 +2,9 @@ from GrammarAutomata import GrammarAutomata
 
 '''
 Production Rules:
-    r = ;(s;)
+    s;|t;|v;+
+
+    r = ;(s;) NOTE: denotes groups + order of ops
     r = st
     r = s;|t
     r = s;*

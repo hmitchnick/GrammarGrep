@@ -9,7 +9,7 @@ class GrammarGrep:
 
     def match_all(self, regex):
         nfa = RegExParser.regex_to_nfa(regex)
-        nfa.print_nodes()
+        nfa.display_graph()
         return nfa.check_all(self.code, self.labels)
 
     def match_first(self, regex):

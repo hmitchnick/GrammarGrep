@@ -1,3 +1,8 @@
+import graphviz
+
+import os
+os.environ["PATH"] += os.pathsep + 'C:/Program Files/Graphviz/bin'
+
 def get_next_begin(codelines, lineno, col_offset):
     if col_offset+1 < len(codelines[lineno-1]):
         return lineno, col_offset + 1
@@ -101,18 +106,29 @@ class GrammarAutomata:
     def add_edge(self, id_src, id_dst, cond):
         self.nodes[id_src].add_edge(self.nodes[id_dst], cond)
 
-    def print_nodes(self):
+    def print_graph(self):
         for node in self.nodes:
             print("NODE", hex(id(node)), ":")
             for edge in node.edges:
                 print("EDGE TO", hex(id(edge[0])), "WITH COND TYPE:", edge[1].type, "STR:", edge[1].str)
+
+    def display_graph(self):
+        dot = graphviz.Digraph(comment = 'Automata')
+        for i, node in enumerate(self.nodes):
+            dot.node(hex(id(node)), str(i))
+            for edge in node.edges:
+                if edge[1].type == "str":
+                    dot.edge(hex(id(node)), hex(id(edge[0])), edge[1].type + ":'" + edge[1].str+"'")
+                else:
+                    dot.edge(hex(id(node)), hex(id(edge[0])), edge[1].type)
+        dot.render('doctest-output/automata.gv', view=True)
+
 
     def check_all(self, codelines, labels):
         matchs = []
         lineno_begin = 1
         col_offset_begin = 0
         while lineno_begin != -1:
-            print(lineno_begin, ", ", col_offset_begin)
             stack = [(self.nodes[0], lineno_begin, col_offset_begin)]
             while len(stack) > 0:
                 node, lineno, col_offset = stack[-1]
