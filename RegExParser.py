@@ -35,69 +35,89 @@ def get_closing_paren(regex: str, paren_open_idx):
             counter -= 1
         if counter == 0:
             return i
-        i = regex.find(";", i+1)
+        i = regex.find(";", i + 1)
 
 
-def regex_to_nfa(regex: str):
+def get_groups(regex: str):
+    groups = {}
+    i_begin = regex.find(";(", 0)
+    i_end = len(regex)
+    i_group = 0
+    while i_begin != -1 and i_begin < i_end:
+        i_end = get_closing_paren(regex, i_begin+1)
+        groups[i_begin] = (i_end, i_group)
+        i_begin += 2
+        i_group += 1
+        i_begin = regex.find(";(", i_begin)
+    return groups
+
+
+def regex_to_nfa_aux(regex: str, groups, i_begin, i_end):
     nfa = None
-    idx_begin = 0
-    while idx_begin < len(regex):
-        meta_idx = regex.find(";", idx_begin)
+    i_curr = i_begin
+    while i_curr < i_end:
+        meta_idx = regex.find(";", i_curr)
         if meta_idx == -1:
-            nfa_step = GrammarAutomata.create_automata_matching(regex[idx_begin:])
+            nfa_step = GrammarAutomata.create_automata_matching(regex[i_curr:])
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
             return nfa
 
-        if meta_idx > idx_begin:
-            nfa_step = GrammarAutomata.create_automata_matching(regex[idx_begin:meta_idx])
+        if meta_idx > i_curr:
+            nfa_step = GrammarAutomata.create_automata_matching(regex[i_curr:meta_idx])
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
 
         if regex[meta_idx + 1] == "(":
-            idx_close = get_closing_paren(regex, meta_idx+1)
-            nfa_step = regex_to_nfa(regex[meta_idx+2:idx_close])
-            idx_begin = idx_close + 2
+            idx_close, idx_group = groups[meta_idx]
+            nfa_step = regex_to_nfa_aux(regex, groups, meta_idx + 2, idx_close)
+            nfa_step.add_group(idx_group)
+            i_curr = idx_close + 2
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
         elif regex[meta_idx + 1] == "|":
             nfa_l = nfa
-            nfa_r = regex_to_nfa(regex[meta_idx + 2:])
+            nfa_r = regex_to_nfa_aux(regex, groups, meta_idx + 2, i_end)
             nfa = GrammarAutomata.create_automata_or(nfa_l, nfa_r)
             return nfa
         elif regex[meta_idx + 1] == "*":
-            nfa_inner = regex_to_nfa(regex[idx_begin:meta_idx])
+            nfa_inner = regex_to_nfa_aux(regex, groups, i_curr, meta_idx)
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_inner)
             nfa = GrammarAutomata.create_automata_star(nfa)
-            idx_begin = meta_idx + 2
+            i_curr = meta_idx + 2
         elif regex[meta_idx + 1] == "+":
-            nfa_inner = regex_to_nfa(regex[idx_begin:meta_idx])
+            nfa_inner = regex_to_nfa_aux(regex, groups, i_curr, meta_idx)
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_inner)
             nfa = GrammarAutomata.create_automata_plus(nfa)
-            idx_begin = meta_idx + 2
+            i_curr = meta_idx + 2
         elif regex[meta_idx + 1] == "?":
-            nfa_inner = regex_to_nfa(regex[idx_begin:meta_idx])
+            nfa_inner = regex_to_nfa_aux(regex, groups, i_curr, meta_idx)
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_inner)
             nfa = GrammarAutomata.create_automata_question(nfa)
-            idx_begin = meta_idx + 2
+            i_curr = meta_idx + 2
         elif regex[meta_idx + 1:].startswith("id"):
             nfa_step = GrammarAutomata.create_automata_meta("id_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
-            idx_begin = meta_idx + 1 + 2
+            i_curr = meta_idx + 1 + 2
         elif regex[meta_idx + 1:].startswith("stmt"):
             nfa_step = GrammarAutomata.create_automata_meta("stmt_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
-            idx_begin = meta_idx + 1 + 4
+            i_curr = meta_idx + 1 + 4
         elif regex[meta_idx + 1:].startswith("expr"):
             nfa_step = GrammarAutomata.create_automata_meta("expr_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
-            idx_begin = meta_idx + 1 + 4
+            i_curr = meta_idx + 1 + 4
         elif regex[meta_idx + 1:].startswith("str"):
             nfa_step = GrammarAutomata.create_automata_meta("str_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
-            idx_begin = meta_idx + 1 + 3
+            i_curr = meta_idx + 1 + 3
         elif regex[meta_idx + 1:].startswith("num"):
             nfa_step = GrammarAutomata.create_automata_meta("num_type")
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
-            idx_begin = meta_idx + 1 + 3
+            i_curr = meta_idx + 1 + 3
         else:
             print("Error!")
             return None
     return nfa
+
+
+def regex_to_nfa(regex: str):
+    groups = get_groups(regex)
+    return regex_to_nfa_aux(regex, groups, 0, len(regex))

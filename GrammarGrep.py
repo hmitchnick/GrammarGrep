@@ -7,14 +7,13 @@ class GrammarGrep:
         self.code = None
         self.labels = None
 
-    def match_all(self, regex):
+    def match(self, regex):
         nfa = RegExParser.regex_to_nfa(regex)
-        nfa.display_graph()
-        return nfa.check_all(self.code, self.labels)
+        return nfa.match_all(self.code, self.labels)
 
-    def match_first(self, regex):
+    def replace(self, regex, replace_list):
         nfa = RegExParser.regex_to_nfa(regex)
-        return nfa.check_first(self.code, self.labels)
+        return nfa.replace_all(self.code, self.labels, replace_list)
 
     def load_code(self, code: str):
         labels = {}

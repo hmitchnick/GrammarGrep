@@ -2,8 +2,7 @@ from GrammarGrep import *
 
 if __name__ == '__main__':
 
-    regex = 'if len(;id) > 0:;|return ;id'
-
+    regex = 'if len(;id) > 0:;|;(return ;id;)'
 
     code = '''def f(z: set):
         x = []
@@ -18,9 +17,5 @@ if __name__ == '__main__':
 
     grammerGrep = GrammarGrep()
     grammerGrep.load_code(code)
-    print(grammerGrep.match_all(regex))
-
-
-
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    print(grammerGrep.match(regex))
+    print(grammerGrep.replace(regex, ["yield 3"]))
