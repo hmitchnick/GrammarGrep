@@ -1,4 +1,4 @@
-import graphviz
+# import graphviz
 
 import os
 
@@ -149,7 +149,7 @@ class GrammarAutomata:
                 print("EDGE TO", hex(id(edge[0])), "WITH COND TYPE:", edge[1].type, "STR:", edge[1].str)
 
     def display_graph(self):
-        dot = graphviz.Digraph(comment='Automata')
+        '''dot = graphviz.Digraph(comment='Automata')
         for i, node in enumerate(self.nodes):
             dot.node(hex(id(node)), str(i))
             for edge in node.edges:
@@ -157,7 +157,8 @@ class GrammarAutomata:
                     dot.edge(hex(id(node)), hex(id(edge[0])), edge[1].type + ":'" + edge[1].str + "'")
                 else:
                     dot.edge(hex(id(node)), hex(id(edge[0])), edge[1].type)
-        dot.render('doctest-output/automata.gv', view=True)
+        dot.render('doctest-output/automata.gv', view=True)'''
+        pass
 
     def match_generator(self, codelines, labels):
         groups = {}
@@ -188,9 +189,12 @@ class GrammarAutomata:
         return next(self.match_generator(codelines, labels))[0]
 
     def replace_all(self, codelines: str, labels, replace_list):
+        codelines_replaced = codelines
         for match, groups in self.match_generator(codelines, labels):
-            print(match, groups)
-        return codelines
+            line_beg, col_beg = match[0][0]
+            line_end, col_end = match[0][1]
+            codelines_replaced[line_beg-1] = codelines_replaced[line_beg-1][:col_beg]+replace_list[0]
+        return codelines_replaced
 
     def replace_first(self, codelines, labels, replace_list):
         match, groups = next(self.match_generator(codelines, labels))[0]
