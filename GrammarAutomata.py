@@ -161,26 +161,39 @@ class GrammarAutomata:
         pass
 
     def match_generator(self, codelines, labels):
-        groups = {}
         lineno_begin = 1
         col_offset_begin = 0
         while lineno_begin != -1:
             stack = [(self.nodes[0], lineno_begin, col_offset_begin)]
+            group_markers = {}, {}
+            last_match_end = None
             while len(stack) > 0:
                 node, lineno, col_offset = stack[-1]
                 stack.pop()
                 groups_begin = self.get_groups_begin(node)
                 groups_end = self.get_groups_end(node)
-                self.update_groups(groups, groups_begin, groups_end, lineno, col_offset)
+                if len(groups_begin) > 0:
+                    group_markers[0][(lineno, col_offset)] = groups_begin
+                if len(groups_end) > 0:
+                    group_markers[1][(lineno, col_offset)] = groups_end
                 for node_dst, cond in node.edges:
                     satisfied, listends = cond.check(codelines, labels, lineno, col_offset)
                     if satisfied:
                         if node_dst == self.nodes[-1]:
-                            yield [((lineno_begin, col_offset_begin), listend) for listend in listends], groups
-                        else:
-                            for ends in listends:
-                                stack.append((node_dst, ends[0], ends[1]))
+                            last_match_end = self.last_listend(listends)
+                        for ends in listends:
+                            stack.append((node_dst, ends[0], ends[1]))
+            if last_match_end is not None:
+                yield ((lineno_begin, col_offset_begin), last_match_end), group_markers
             lineno_begin, col_offset_begin = self.get_next_begin(codelines, lineno_begin, col_offset_begin)
+
+    def last_listend(self, listends):
+        last = listends[0]
+        for i in range(1, len(listends)):
+            curr = listends[i]
+            if curr[0] > last[0] or (curr[0] == last[0] and curr[1] > last[1]):
+                last = curr
+        return last
 
     def match_all(self, codelines, labels):
         return [m for (m, _) in self.match_generator(codelines, labels)]
@@ -188,15 +201,28 @@ class GrammarAutomata:
     def match_first(self, codelines, labels):
         return next(self.match_generator(codelines, labels))[0]
 
+    def get_key(self, val, d):
+        for key, value in d.items():
+            if val == value:
+                return key
+        return None
+
     def replace_all(self, codelines: str, labels, replace_list):
         codelines_replaced = codelines
         for match, groups in self.match_generator(codelines, labels):
-            line_beg, col_beg = match[0][0]
-            line_end, col_end = match[0][1]
-            codelines_replaced[line_beg-1] = codelines_replaced[line_beg-1][:col_beg]+replace_list[0]
+            for group_begin in groups[0]:
+                # assumes single group begins at each position - should choose longest?
+                group_index = groups[0][group_begin]
+                # assumes single end, can throw valueError
+                group_end = self.get_key(group_index, groups[1])
+                if group_end is not None:
+                    line_beg, col_beg = group_begin
+                    line_end, col_end = group_end
+                    # only works for single line replacements
+                    codelines_replaced[line_beg] = codelines_replaced[line_beg][:col_beg]+replace_list[group_index[0]]
         return codelines_replaced
 
     def replace_first(self, codelines, labels, replace_list):
-        match, groups = next(self.match_generator(codelines, labels))[0]
-        print(match, groups)
+        #match, groups = next(self.match_generator(codelines, labels))[0]
+        #print(match, groups)
         return codelines
