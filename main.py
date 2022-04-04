@@ -1,5 +1,10 @@
-from GrammarGrep import *
+import os
 import argparse
+from termcolor import colored
+
+from GrammarGrep import *
+
+os.system('color')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Use regular expressions for finding and replacing code segments.')
@@ -23,4 +28,6 @@ if __name__ == '__main__':
     else:
         match_ranges = grammerGrep.match(args.match)
         for (lineno_beg, col_beg),(lineno_end, col_end) in match_ranges:
-            print("line", lineno_beg, code[lineno_beg][col_beg:])
+            print("line", lineno_beg)
+            print(code[lineno_beg][:col_beg] + colored(code[lineno_beg][col_beg:col_end], 'red') +
+                  code[lineno_beg][col_end:], '\n')
