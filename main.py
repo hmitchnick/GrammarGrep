@@ -1,24 +1,30 @@
 from GrammarGrep import *
+import argparse
+
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Use regular expressions for finding and replacing code segments.')
 
-    regex = 'if len(;id) > 0:;|;(return ;id;)'
+    parser.add_argument('-f', '--filename', type=str, required=True, help='path to file queried')
+    parser.add_argument('-m', '--match', type=str, required=True, help='regex used for matchin')
+    parser.add_argument('-r', '--replace', nargs="*", required=False,
+                        help='list of strings, ith group in matched string will be replaced with ith string in list')
+    args = parser.parse_args()
 
-    code = '''def f(z: set):
-        x = []
-        y = "hello world"
-        for i in range(32):
-            if len(x) > 0:
-                return 0
-            if len(y) > 0:
-                x += 1
-                return x'''
+    f = open(args.filename, "r")
+    code = f.read()
 
     grammerGrep = GrammarGrep()
     grammerGrep.load_code(code)
-    print(grammerGrep.match(regex))
-    print(grammerGrep.replace(regex, ["yield 3"]))
 
+    code = code.splitlines()
+    if args.replace is not None and len(args.replace) > 0:
+        result = grammerGrep.replace(args.match, args.replace)
+        print('\n'.join(result))
+    else:
+        match_ranges = grammerGrep.match(args.match)
+        for (lineno_beg, col_beg),(lineno_end, col_end) in match_ranges:
+            print("line", lineno_beg, code[lineno_beg][col_beg:])
 
 
 
