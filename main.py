@@ -1,7 +1,6 @@
 from GrammarGrep import *
 import argparse
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Use regular expressions for finding and replacing code segments.')
 
@@ -25,8 +24,3 @@ if __name__ == '__main__':
         match_ranges = grammerGrep.match(args.match)
         for (lineno_beg, col_beg),(lineno_end, col_end) in match_ranges:
             print("line", lineno_beg, code[lineno_beg][col_beg:])
-
-
-
-
-

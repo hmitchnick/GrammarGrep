@@ -56,9 +56,9 @@ def regex_to_nfa_aux(regex: str, groups, i_begin, i_end):
     nfa = None
     i_curr = i_begin
     while i_curr < i_end:
-        meta_idx = regex.find(";", i_curr)
+        meta_idx = regex.find(";", i_curr, i_end)
         if meta_idx == -1:
-            nfa_step = GrammarAutomata.create_automata_matching(regex[i_curr:])
+            nfa_step = GrammarAutomata.create_automata_matching(regex[i_curr:i_end])
             nfa = GrammarAutomata.create_automata_concat(nfa, nfa_step)
             return nfa
 
