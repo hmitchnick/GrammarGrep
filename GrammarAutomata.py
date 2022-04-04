@@ -29,7 +29,7 @@ class GrammarAutomata:
         # returns if satisfied and index after passing
         def check(self, codelines, labels: dict, lineno, col_offset):
             if self.type == "str":
-                return codelines[lineno - 1].startswith(self.str, col_offset), [(lineno, col_offset + len(self.str))]
+                return codelines[lineno].startswith(self.str, col_offset), [(lineno, col_offset + len(self.str))]
             elif self.type == "epsilon":
                 return True, [(lineno, col_offset)]
             else:
@@ -59,24 +59,12 @@ class GrammarAutomata:
 
     @staticmethod
     def get_next_begin(codelines, lineno, col_offset):
-        if col_offset + 1 < len(codelines[lineno - 1]):
+        if col_offset < len(codelines[lineno]) - 1:
             return lineno, col_offset + 1
-        elif lineno < len(codelines):
+        elif lineno < len(codelines) - 1:
             return lineno + 1, 0
         else:
             return -1, -1
-
-    @staticmethod
-    def update_groups(groups, groups_begin, groups_end, lineno, col_offset):
-        for group_index in groups:
-            if group_index in groups_end:
-                group = groups[group_index]
-                group.lineno_end = max(group.lineno_end, lineno)
-                group.col_offset_end = max(group.col_offset_end, col_offset)
-        for group_index in groups_begin:
-            if group_index not in groups:
-                group = GrammarAutomata.Group(lineno, col_offset)
-                groups[group_index] = group
 
     @staticmethod
     def create_automata_matching(string):
@@ -99,9 +87,11 @@ class GrammarAutomata:
     @staticmethod
     def create_automata_or(ga0, ga1):
         ga = GrammarAutomata()
-        ga.nodes = ga0.nodes + ga1.nodes
-        ga.add_edge(0, len(ga0.nodes), GrammarAutomata.Cond("epsilon"))
-        ga.add_edge(len(ga0.nodes) - 1, len(ga.nodes) - 1, GrammarAutomata.Cond("epsilon"))
+        ga.nodes = [GrammarAutomata.Node()] + ga0.nodes + ga1.nodes + [GrammarAutomata.Node()]
+        ga.add_edge(0, 1, GrammarAutomata.Cond("epsilon"))
+        ga.add_edge(0, 1+len(ga0.nodes), GrammarAutomata.Cond("epsilon"))
+        ga.add_edge(len(ga0.nodes), len(ga.nodes) - 1, GrammarAutomata.Cond("epsilon"))
+        ga.add_edge(len(ga.nodes)-2, len(ga.nodes) - 1, GrammarAutomata.Cond("epsilon"))
         ga.groups = ga0.groups + ga1.groups
         return ga
 
@@ -114,15 +104,21 @@ class GrammarAutomata:
 
     @staticmethod
     def create_automata_plus(ga0):
-        ga = ga0
-        ga.add_edge(len(ga.nodes) - 1, 0, GrammarAutomata.Cond("epsilon"))
+        ga = GrammarAutomata()
+        ga.nodes = [GrammarAutomata.Node()] + ga0.nodes + [GrammarAutomata.Node()]
+        ga.add_edge(0, 1, GrammarAutomata.Cond("epsilon"))
+        ga.add_edge(len(ga.nodes)-2, 1, GrammarAutomata.Cond("epsilon"))
+        ga.add_edge(len(ga.nodes)-2, len(ga.nodes)-1, GrammarAutomata.Cond("epsilon"))
         ga.groups = ga0.groups
         return ga
 
     @staticmethod
     def create_automata_question(ga0):
-        ga = ga0
-        ga.add_edge(0, len(ga.nodes) - 1, GrammarAutomata.Cond("epsilon"))
+        ga = GrammarAutomata()
+        ga.nodes = [GrammarAutomata.Node()] + ga0.nodes + [GrammarAutomata.Node()]
+        ga.add_edge(0, 1, GrammarAutomata.Cond("epsilon"))
+        ga.add_edge(len(ga.nodes)-2, len(ga.nodes)-1, GrammarAutomata.Cond("epsilon"))
+        ga.add_edge(1, len(ga.nodes)-1, GrammarAutomata.Cond("epsilon"))
         ga.groups = ga0.groups
         return ga
 
@@ -160,8 +156,22 @@ class GrammarAutomata:
         dot.render('doctest-output/automata.gv', view=True)'''
         pass
 
+    def consolidate_groups(self, groups):
+        index_to_range = {}
+        for (lineno, col_offset), groups_begin in groups[0].items():
+            for group_index in groups_begin:
+                if group_index not in index_to_range:
+                    index_to_range[group_index] = [(lineno, col_offset), None]
+        for (lineno, col_offset), groups_end in groups[1].items():
+            for group_index in groups_end:
+                if group_index in index_to_range:
+                    index_to_range[group_index][1] = (lineno, col_offset)
+        # remove uncompleted groups
+        index_to_range = {k: l for k, l in index_to_range.items() if l[1] is not None}
+        return index_to_range
+
     def match_generator(self, codelines, labels):
-        lineno_begin = 1
+        lineno_begin = 0
         col_offset_begin = 0
         while lineno_begin != -1:
             stack = [(self.nodes[0], lineno_begin, col_offset_begin)]
@@ -184,7 +194,7 @@ class GrammarAutomata:
                         for ends in listends:
                             stack.append((node_dst, ends[0], ends[1]))
             if last_match_end is not None:
-                yield ((lineno_begin, col_offset_begin), last_match_end), group_markers
+                yield ((lineno_begin, col_offset_begin), last_match_end), self.consolidate_groups(group_markers)
             lineno_begin, col_offset_begin = self.get_next_begin(codelines, lineno_begin, col_offset_begin)
 
     def last_listend(self, listends):
@@ -207,22 +217,23 @@ class GrammarAutomata:
                 return key
         return None
 
+    def replace_helper(self, res, substr, group_position, offset):
+        begin = offset[0] + group_position[0][0], offset[1] + group_position[0][1]
+        end = offset[0] + group_position[1][0], offset[1] + group_position[1][1]
+        res_replaced = res[:begin[0]] + [res[begin[0]][:begin[1]] + substr + res[end[0]][end[1]:]] + res[end[0]+1:]
+        offset_new = offset #offset[0], len(substr) - end[1] + begin[1] + offset[1]
+        return res_replaced, offset_new
+
     def replace_all(self, codelines: str, labels, replace_list):
-        codelines_replaced = codelines
+        res = codelines
+        offset = (0, 0)
         for match, groups in self.match_generator(codelines, labels):
-            for group_begin in groups[0]:
-                # assumes single group begins at each position - should choose longest?
-                group_index = groups[0][group_begin]
-                # assumes single end, can throw valueError
-                group_end = self.get_key(group_index, groups[1])
-                if group_end is not None:
-                    line_beg, col_beg = group_begin
-                    line_end, col_end = group_end
-                    # only works for single line replacements
-                    codelines_replaced[line_beg] = codelines_replaced[line_beg][:col_beg]+replace_list[group_index[0]]
-        return codelines_replaced
+            for group_index, group_position in groups.items():
+                substr = replace_list[group_index]
+                res, offset = self.replace_helper(res, substr, group_position, offset)
+        return res
 
     def replace_first(self, codelines, labels, replace_list):
-        #match, groups = next(self.match_generator(codelines, labels))[0]
-        #print(match, groups)
+        # match, groups = next(self.match_generator(codelines, labels))[0]
+        # print(match, groups)
         return codelines

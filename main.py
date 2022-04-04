@@ -12,10 +12,15 @@ if __name__ == '__main__':
                 return 0
             if len(y) > 0:
                 x += 1
-                return x
-    '''
+                return x'''
 
     grammerGrep = GrammarGrep()
     grammerGrep.load_code(code)
     print(grammerGrep.match(regex))
     print(grammerGrep.replace(regex, ["yield 3"]))
+
+
+
+
+
+

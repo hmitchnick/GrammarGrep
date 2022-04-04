@@ -21,28 +21,28 @@ class GrammarGrep:
         class LabelVisitor(ast.NodeVisitor):
             def generic_visit(self, node: ast.AST):
                 if isinstance(node, ast.expr):
-                    key = (node.lineno, node.col_offset)
-                    value = ("expr_type", node.end_lineno, node.end_col_offset)
+                    key = (node.lineno - 1, node.col_offset)
+                    value = ("expr_type", node.end_lineno - 1, node.end_col_offset)
                     labels.setdefault(key, [])
                     labels[key].append(value)
                 if isinstance(node, ast.stmt):
-                    key = (node.lineno, node.col_offset)
-                    value = ("stmt_type", node.end_lineno, node.end_col_offset)
+                    key = (node.lineno - 1, node.col_offset)
+                    value = ("stmt_type", node.end_lineno - 1, node.end_col_offset)
                     labels.setdefault(key, [])
                     labels[key].append(value)
                 if isinstance(node, ast.Name):
-                    key = (node.lineno, node.col_offset)
-                    value = ("id_type", node.end_lineno, node.end_col_offset)
+                    key = (node.lineno - 1, node.col_offset)
+                    value = ("id_type", node.end_lineno - 1, node.end_col_offset)
                     labels.setdefault(key, [])
                     labels[key].append(value)
                 if isinstance(node, ast.Num):
-                    key = (node.lineno, node.col_offset)
-                    value = ("num_type", node.end_lineno, node.end_col_offset)
+                    key = (node.lineno - 1, node.col_offset)
+                    value = ("num_type", node.end_lineno - 1, node.end_col_offset)
                     labels.setdefault(key, [])
                     labels[key].append(value)
                 if isinstance(node, ast.Str):
-                    key = (node.lineno, node.col_offset)
-                    value = ("str_type", node.end_lineno, node.end_col_offset)
+                    key = (node.lineno - 1, node.col_offset)
+                    value = ("str_type", node.end_lineno - 1, node.end_col_offset)
                     labels.setdefault(key, [])
                     labels[key].append(value)
                 ast.NodeVisitor.generic_visit(self, node)
